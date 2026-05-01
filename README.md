@@ -6,8 +6,8 @@ A minimal full-stack Expense Tracker application that allows users to add, view,
 
 ## 🚀 Live Demo
 
-Frontend: (add after deployment)
-Backend: (add after deployment)
+Frontend: https://expense-tracker-lbz8.vercel.app
+Backend: https://expense-backend-723e.onrender.com
 
 ---
 
