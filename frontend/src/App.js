@@ -19,7 +19,9 @@ function App() {
   }, []);
 
   const fetchExpenses = async () => {
-    const res = await axios.get(`http://localhost:5000/expenses?sort=${sort}`);
+    const res = await axios.get(
+      `https://expense-backend-723e.onrender.com/expenses?sort=${sort}`,
+    );
     setExpenses(res.data);
   };
 
@@ -29,7 +31,10 @@ function App() {
       return;
     }
 
-    await axios.post("http://localhost:5000/expenses", form);
+    await axios.post(
+      "https://expense-backend-723e.onrender.com/expenses",
+      form,
+    );
 
     setForm({
       amount: "",
