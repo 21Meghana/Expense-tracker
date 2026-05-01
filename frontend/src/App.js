@@ -13,17 +13,29 @@ function App() {
   const [expenses, setExpenses] = useState([]);
   const [filter, setFilter] = useState("");
   const [sort, setSort] = useState("date_desc");
-
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
     fetchExpenses();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchExpenses = async () => {
-    const res = await axios.get(
-      `https://expense-backend-723e.onrender.com/expenses?sort=${sort}`,
-    );
-    setExpenses(res.data);
+  const fetchExpenses = async (retryCount = 0) => {
+    try {
+      const res = await axios.get(
+        "https://expense-backend-723e.onrender.com/expenses",
+      );
+
+      setExpenses(res.data);
+      setLoading(false); // ✅ stop loading
+    } catch (err) {
+      if (retryCount < 3) {
+        console.log("Retrying...");
+        setTimeout(() => fetchExpenses(retryCount + 1), 3000);
+      } else {
+        setLoading(false); // stop loading after retries
+        console.log("Server not responding");
+      }
+    }
   };
 
   const handleSubmit = async () => {
@@ -32,10 +44,10 @@ function App() {
       return;
     }
 
-    await axios.post(
-      "https://expense-backend-723e.onrender.com/expenses",
-      form,
-    );
+    await axios.post("https://expense-backend-723e.onrender.com/expenses", {
+      ...form,
+      category: form.category.toLowerCase(),
+    });
 
     setForm({
       amount: "",
@@ -67,127 +79,130 @@ function App() {
   return (
     <div className="container">
       <h1>Expense tracker</h1>
+      {loading ? (
+        <p>Connecting to server...</p>
+      ) : (
+        <div className="grid">
+          {/* LEFT */}
+          <div>
+            <div className="card">
+              <h3>ADD EXPENSE</h3>
 
-      <div className="grid">
-        {/* LEFT */}
-        <div>
-          <div className="card">
-            <h3>ADD EXPENSE</h3>
+              <input
+                placeholder="Amount"
+                type="number"
+                value={form.amount}
+                onChange={(e) => setForm({ ...form, amount: e.target.value })}
+              />
 
-            <input
-              placeholder="Amount"
-              type="number"
-              value={form.amount}
-              onChange={(e) => setForm({ ...form, amount: e.target.value })}
-            />
+              <input
+                list="categories"
+                placeholder="Type or select category"
+                value={form.category}
+                onChange={(e) => setForm({ ...form, category: e.target.value })}
+              />
 
-            <input
-              list="categories"
-              placeholder="Type or select category"
-              value={form.category}
-              onChange={(e) => setForm({ ...form, category: e.target.value })}
-            />
+              <datalist id="categories">
+                <option value="Food" />
+                <option value="Shopping" />
+                <option value="Travel" />
+              </datalist>
 
-            <datalist id="categories">
-              <option value="Food" />
-              <option value="Shopping" />
-              <option value="Travel" />
-            </datalist>
+              <textarea
+                placeholder="Description"
+                value={form.description}
+                onChange={(e) =>
+                  setForm({ ...form, description: e.target.value })
+                }
+              />
 
-            <textarea
-              placeholder="Description"
-              value={form.description}
-              onChange={(e) =>
-                setForm({ ...form, description: e.target.value })
-              }
-            />
+              <input
+                type="date"
+                value={form.date}
+                onChange={(e) => setForm({ ...form, date: e.target.value })}
+              />
 
-            <input
-              type="date"
-              value={form.date}
-              onChange={(e) => setForm({ ...form, date: e.target.value })}
-            />
+              <button onClick={handleSubmit}>Add expense</button>
+            </div>
 
-            <button onClick={handleSubmit}>Add expense</button>
-          </div>
+            {/* ⭐ BY CATEGORY */}
+            <div className="card" style={{ marginTop: "20px" }}>
+              <h3>BY CATEGORY</h3>
 
-          {/* ⭐ BY CATEGORY */}
-          <div className="card" style={{ marginTop: "20px" }}>
-            <h3>BY CATEGORY</h3>
-
-            {Object.keys(categoryTotals).length === 0 ? (
-              <p>No data yet</p>
-            ) : (
-              Object.entries(categoryTotals).map(([cat, val]) => (
-                <div
-                  key={cat}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    marginBottom: "5px",
-                  }}
-                >
-                  <span>{cat}</span>
-                  <span>₹{val}</span>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* RIGHT */}
-        <div>
-          <div className="summary">
-            <div>Total ₹{total}</div>
-            <div>Entries {filteredExpenses.length}</div>
-          </div>
-
-          {/* 🔍 SEARCH + SORT */}
-          <div className="controls">
-            <input
-              placeholder="Search category..."
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-            />
-
-            <select onChange={(e) => setSort(e.target.value)}>
-              <option value="date_desc">Newest</option>
-              <option value="date_asc">Oldest</option>
-            </select>
-          </div>
-
-          {/* LIST */}
-          <div className="list">
-            {filteredExpenses.length === 0 ? (
-              <p>No expenses found</p>
-            ) : (
-              filteredExpenses.map((e) => (
-                <div className="item" key={e._id}>
-                  <div>
-                    {/* CATEGORY ON TOP */}
-                    <strong style={{ fontSize: "16px" }}>
-                      {e.category.toUpperCase()}
-                    </strong>
-
-                    {/* DESCRIPTION */}
-                    <div style={{ color: "#bbb" }}>
-                      {e.description || "No description"}
-                    </div>
-
-                    {/* DATE */}
-                    <div style={{ fontSize: "12px", color: "#888" }}>
-                      {new Date(e.date).toLocaleDateString()}
-                    </div>
+              {Object.keys(categoryTotals).length === 0 ? (
+                <p>No data yet</p>
+              ) : (
+                Object.entries(categoryTotals).map(([cat, val]) => (
+                  <div
+                    key={cat}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      marginBottom: "5px",
+                    }}
+                  >
+                    <span>{cat}</span>
+                    <span>₹{val}</span>
                   </div>
+                ))
+              )}
+            </div>
+          </div>
 
-                  {/* AMOUNT RIGHT */}
-                  <div style={{ fontWeight: "bold" }}>₹{e.amount}</div>
-                </div>
-              ))
-            )}
+          {/* RIGHT */}
+          <div>
+            <div className="summary">
+              <div>Total ₹{total}</div>
+              <div>Entries {filteredExpenses.length}</div>
+            </div>
+
+            {/* 🔍 SEARCH + SORT */}
+            <div className="controls">
+              <input
+                placeholder="Search category..."
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+              />
+
+              <select onChange={(e) => setSort(e.target.value)}>
+                <option value="date_desc">Newest</option>
+                <option value="date_asc">Oldest</option>
+              </select>
+            </div>
+
+            {/* LIST */}
+            <div className="list">
+              {filteredExpenses.length === 0 ? (
+                <p>No expenses found</p>
+              ) : (
+                filteredExpenses.map((e) => (
+                  <div className="item" key={e._id}>
+                    <div>
+                      {/* CATEGORY ON TOP */}
+                      <strong style={{ fontSize: "16px" }}>
+                        {e.category.toUpperCase()}
+                      </strong>
+
+                      {/* DESCRIPTION */}
+                      <div style={{ color: "#bbb" }}>
+                        {e.description || "No description"}
+                      </div>
+
+                      {/* DATE */}
+                      <div style={{ fontSize: "12px", color: "#888" }}>
+                        {new Date(e.date).toLocaleDateString()}
+                      </div>
+                    </div>
+
+                    {/* AMOUNT RIGHT */}
+                    <div style={{ fontWeight: "bold" }}>₹{e.amount}</div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
