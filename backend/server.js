@@ -7,7 +7,10 @@ const cors = require("cors");
 const Expense = require("./models/Expense");
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: "*",
+  methods: ["GET", "POST"],
+}));
 app.use(express.json());
 
 mongoose
